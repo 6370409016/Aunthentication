@@ -4,8 +4,10 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
-const encrypt = require('mongoose-encryption');
-
+// const encrypt = require('mongoose-encryption');
+// const md5=require('md5');
+const bcrypt = require('bcrypt');
+const saltRounds = 10; // no of saltRounds we want
 
 const app = express();
 
@@ -25,10 +27,10 @@ const userSchema = new mongoose.Schema({
 });
 
 
-userSchema.plugin(encrypt, {
-  secret: process.env.SECRET, // access the value of our secret key from .env file
-  encryptedFields: ["password"]
-}); // here we just encrypt our password feild
+// userSchema.plugin(encrypt, {
+//   secret: process.env.SECRET, // access the value of our secret key from .env file
+//   encryptedFields: ["password"]
+// }); // here we just encrypt our password feild
 
 const User = mongoose.model('User', userSchema);
 
@@ -47,22 +49,26 @@ app.get('/login', (req, res) => {
 });
 
 
-app.post('/register', async (req, res) => {
-
+app.post('/register',  (req, res) => {
   try {
 
-    const newUser = await new User({
-      email: req.body.username,
-      password: req.body.password
-    });
+    bcrypt.hash(req.body.password, saltRounds, async function(err, hash) {
 
-    await newUser.save();
-    res.render('secrets');
 
-  } catch (err) {
-    res.send(err);
-  }
-});
+        const newUser = await new User({
+          email: req.body.username,
+          password: hash
+        });
+
+        await newUser.save();
+        res.render('secrets');
+      });
+    }
+    catch (err) {
+      res.send(err);
+    }
+  });
+
 
 app.post('/login', (req, res) => {
   const userName = req.body.username;
@@ -71,14 +77,16 @@ app.post('/login', (req, res) => {
     email: userName
   }).then((foundItem) => { //check entered email is available or not
     if (foundItem) {
-      if (foundItem.password === userPassword) { // if available password matched or not
-        res.render('secrets');
+      bcrypt.compare(userPassword, foundItem.password, function(err, result) {   // here we compare user provided password with hash stored in database for that perrticular username
+      if(result===true){
+      res.render('secrets');
+        } else {
+          res.send('Password is incorrect, Please check again.');
+        }
+      });
       } else {
-        res.send('Password is incorrect, Please check again.');
+        res.send('Wrong Username, Please put a correct username');
       }
-    } else {
-      res.send('Wrong Username, Please put a correct username');
-    }
   }).catch((err) => {
     res.send(err);
   });
