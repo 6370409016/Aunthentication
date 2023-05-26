@@ -49,25 +49,24 @@ app.get('/login', (req, res) => {
 });
 
 
-app.post('/register',  (req, res) => {
+app.post('/register', (req, res) => {
   try {
 
     bcrypt.hash(req.body.password, saltRounds, async function(err, hash) {
 
 
-        const newUser = await new User({
-          email: req.body.username,
-          password: hash
-        });
-
-        await newUser.save();
-        res.render('secrets');
+      const newUser = await new User({
+        email: req.body.username,
+        password: hash
       });
-    }
-    catch (err) {
-      res.send(err);
-    }
-  });
+
+      await newUser.save();
+      res.render('secrets');
+    });
+  } catch (err) {
+    res.send(err);
+  }
+});
 
 
 app.post('/login', (req, res) => {
@@ -77,16 +76,16 @@ app.post('/login', (req, res) => {
     email: userName
   }).then((foundItem) => { //check entered email is available or not
     if (foundItem) {
-      bcrypt.compare(userPassword, foundItem.password, function(err, result) {   // here we compare user provided password with hash stored in database for that perrticular username
-      if(result===true){
-      res.render('secrets');
+      bcrypt.compare(userPassword, foundItem.password, function(err, result) { // here we compare user provided password with hash stored in database for that perrticular username
+        if (result === true) {
+          res.render('secrets');
         } else {
           res.send('Password is incorrect, Please check again.');
         }
       });
-      } else {
-        res.send('Wrong Username, Please put a correct username');
-      }
+    } else {
+      res.send('Wrong Username, Please put a correct username');
+    }
   }).catch((err) => {
     res.send(err);
   });
